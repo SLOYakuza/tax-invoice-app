@@ -5,14 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\Invoice;
 use App\Models\Client;
 use App\Models\InvoiceItem;
+use App\Http\Requests\StoreInvoiceRequest;
+use App\Http\Requests\UpdateInvoiceRequest;
+use App\Services\InvoicePdfService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class InvoiceController extends Controller
 {
-    public function __construct()
+    protected $pdfService;
+
+    public function __construct(InvoicePdfService $pdfService)
     {
+        $this->pdfService = $pdfService;
         $this->middleware('auth');
     }
 
@@ -35,29 +40,18 @@ class InvoiceController extends Controller
         return view('invoices.create', compact('clients'));
     }
 
-    public function store(Request $request)
+    public function store(StoreInvoiceRequest $request)
     {
-        $validated = $request->validate([
-            'client_id' => 'required|exists:clients,id',
-            'invoice_date' => 'required|date',
-            'due_date' => 'nullable|date|after:invoice_date',
-            'description' => 'nullable|string',
-            'notes' => 'nullable|string',
-            'items' => 'required|array|min:1',
-            'items.*.description' => 'required|string',
-            'items.*.quantity' => 'required|numeric|min:1',
-            'items.*.unit_price' => 'required|numeric|min:0',
-            'items.*.tax_rate' => 'required|numeric|min:0|max:100',
-        ]);
+        $validated = $request->validated();
 
         $invoice = new Invoice();
         $invoice->user_id = Auth::id();
         $invoice->client_id = $validated['client_id'];
         $invoice->invoice_number = $this->generateInvoiceNumber();
         $invoice->invoice_date = $validated['invoice_date'];
-        $invoice->due_date = $validated['due_date'];
-        $invoice->description = $validated['description'];
-        $invoice->notes = $validated['notes'];
+        $invoice->due_date = $validated['due_date'] ?? null;
+        $invoice->description = $validated['description'] ?? null;
+        $invoice->notes = $validated['notes'] ?? null;
         $invoice->currency = 'EUR';
         $invoice->save();
 
@@ -102,7 +96,7 @@ class InvoiceController extends Controller
         $this->authorize('update', $invoice);
 
         if ($invoice->status !== 'draft') {
-            return back()->with('error', 'Možete uređivati samo nacrte.');
+            return back()->with('error', 'Lahko urejate samo nacrte.');
         }
 
         $clients = Client::where('user_id', Auth::id())->get();
@@ -111,32 +105,21 @@ class InvoiceController extends Controller
         return view('invoices.edit', compact('invoice', 'clients'));
     }
 
-    public function update(Request $request, Invoice $invoice)
+    public function update(UpdateInvoiceRequest $request, Invoice $invoice)
     {
         $this->authorize('update', $invoice);
 
         if ($invoice->status !== 'draft') {
-            return back()->with('error', 'Možete uređivati samo nacrte.');
+            return back()->with('error', 'Lahko urejate samo nacrte.');
         }
 
-        $validated = $request->validate([
-            'client_id' => 'required|exists:clients,id',
-            'invoice_date' => 'required|date',
-            'due_date' => 'nullable|date|after:invoice_date',
-            'description' => 'nullable|string',
-            'notes' => 'nullable|string',
-            'items' => 'required|array|min:1',
-            'items.*.description' => 'required|string',
-            'items.*.quantity' => 'required|numeric|min:1',
-            'items.*.unit_price' => 'required|numeric|min:0',
-            'items.*.tax_rate' => 'required|numeric|min:0|max:100',
-        ]);
+        $validated = $request->validated();
 
         $invoice->client_id = $validated['client_id'];
         $invoice->invoice_date = $validated['invoice_date'];
-        $invoice->due_date = $validated['due_date'];
-        $invoice->description = $validated['description'];
-        $invoice->notes = $validated['notes'];
+        $invoice->due_date = $validated['due_date'] ?? null;
+        $invoice->description = $validated['description'] ?? null;
+        $invoice->notes = $validated['notes'] ?? null;
 
         $invoice->items()->delete();
 
@@ -172,10 +155,7 @@ class InvoiceController extends Controller
     public function pdf(Invoice $invoice)
     {
         $this->authorize('view', $invoice);
-        $invoice->load('client', 'items', 'user');
-
-        $pdf = Pdf::loadView('invoices.pdf', compact('invoice'));
-        return $pdf->download('racun-' . $invoice->invoice_number . '.pdf');
+        return $this->pdfService->download($invoice);
     }
 
     public function send(Request $request, Invoice $invoice)
@@ -186,7 +166,7 @@ class InvoiceController extends Controller
         $invoice->sent_at = now();
         $invoice->save();
 
-        return back()->with('success', 'Račun je označen kao izdat.');
+        return back()->with('success', 'Račun je označen kot izdan.');
     }
 
     public function markPaid(Invoice $invoice)
@@ -197,7 +177,7 @@ class InvoiceController extends Controller
         $invoice->paid_at = now();
         $invoice->save();
 
-        return back()->with('success', 'Račun je označen kao plaćen.');
+        return back()->with('success', 'Račun je označen kot plačan.');
     }
 
     private function generateInvoiceNumber()
