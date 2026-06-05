@@ -7,9 +7,21 @@
         <h1 class="h3">
             <i class="fas fa-file-invoice me-2"></i>Računi
         </h1>
-        <a href="{{ route('invoices.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Novi Račun
-        </a>
+        <div>
+            <a href="{{ route('invoices.create') }}" class="btn btn-primary me-2">
+                <i class="fas fa-plus"></i> Novi Račun
+            </a>
+            <div class="btn-group" role="group">
+                <button id="exportDropdown" type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-download"></i> Izvezi
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                    <li><a class="dropdown-item" href="{{ route('invoices.export.excel') }}"><i class="fas fa-file-excel"></i> Excel (Povzetek)</a></li>
+                    <li><a class="dropdown-item" href="{{ route('invoices.export.excel.multi') }}"><i class="fas fa-file-excel"></i> Excel (Detaljno)</a></li>
+                    <li><a class="dropdown-item" href="{{ route('invoices.export.csv.all') }}"><i class="fas fa-file-csv"></i> CSV</a></li>
+                </ul>
+            </div>
+        </div>
     </div>
 
     <div class="card">
@@ -67,18 +79,25 @@
                                 @endif
                             </td>
                             <td>
-                                <div class="btn-group" role="group">
-                                    <a href="{{ route('invoices.show', $invoice) }}" class="btn btn-sm btn-info" title="Ogled">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ route('invoices.show', $invoice) }}" class="btn btn-info" title="Ogled">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     @if($invoice->status === 'draft')
-                                        <a href="{{ route('invoices.edit', $invoice) }}" class="btn btn-sm btn-warning" title="Uredi">
+                                        <a href="{{ route('invoices.edit', $invoice) }}" class="btn btn-warning" title="Uredi">
                                             <i class="fas fa-edit"></i>
                                         </a>
                                     @endif
-                                    <a href="{{ route('invoices.pdf', $invoice) }}" class="btn btn-sm btn-danger" title="PDF">
+                                    <a href="{{ route('invoices.pdf', $invoice) }}" class="btn btn-danger" title="PDF">
                                         <i class="fas fa-file-pdf"></i>
                                     </a>
+                                    <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Izvezi">
+                                        <i class="fas fa-download"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="{{ route('invoices.export.excel.detail', $invoice) }}"><i class="fas fa-file-excel"></i> Excel</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('invoices.export.csv', $invoice) }}"><i class="fas fa-file-csv"></i> CSV</a></li>
+                                    </ul>
                                 </div>
                             </td>
                         </tr>

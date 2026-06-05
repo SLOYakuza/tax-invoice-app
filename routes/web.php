@@ -24,7 +24,10 @@ Route::middleware('auth')->group(function () {
 
     // Invoice Exports
     Route::get('invoices-export/excel', [InvoiceExportController::class, 'excel'])->name('invoices.export.excel');
+    Route::get('invoices/{invoice}/excel', [InvoiceExportController::class, 'excelDetail'])->name('invoices.export.excel.detail');
+    Route::get('invoices-export/excel-multi', [InvoiceExportController::class, 'excelMultiSheet'])->name('invoices.export.excel.multi');
     Route::get('invoices/{invoice}/csv', [InvoiceExportController::class, 'csv'])->name('invoices.export.csv');
+    Route::get('invoices-export/csv', [InvoiceExportController::class, 'csvAll'])->name('invoices.export.csv.all');
 
     // Clients
     Route::resource('clients', ClientController::class);
